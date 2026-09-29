@@ -1,0 +1,10 @@
+# Build outputs
+build/
+bin/
+
+# Rendered images
+*.ppm
+
+# Editor / OS
+.vscode/
+.DS_Store
