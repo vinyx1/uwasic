@@ -46,7 +46,7 @@ async def initialize(dut):
     dut.raddr2.value = 0
     await tick(dut)
     dut.rst_n.value = 1
-    await settle()
+    await settle()  
 
 
 async def write(dut, address, data):
