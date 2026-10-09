@@ -33,6 +33,7 @@ async def tick(dut):
 
 
 async def initialize(dut):
+    # Start up the clock cycle
     dut.clk.value = 0
     dut.rst_n.value = 0
     dut.load.value = 0
