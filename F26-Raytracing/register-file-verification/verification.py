@@ -10,18 +10,26 @@ import cocotb
 from cocotb.triggers import Timer
 
 
+from cocotb.triggers import Timer
+
+CLOCK_PERIOD_NS = 10  # One full clock cycle = 10 ns
+
+
 async def settle():
     await Timer(1, unit="ns")
 
 
 async def tick(dut):
-    """Manually generate one clean rising edge and return clk low."""
+    """Generate one complete clock cycle (50% duty cycle)."""
+    half_period = CLOCK_PERIOD_NS / 2
+
     dut.clk.value = 0
-    await settle()
+    await Timer(half_period, unit="ns")
+
     dut.clk.value = 1
-    await settle()
+    await Timer(half_period, unit="ns")
+
     dut.clk.value = 0
-    await settle()
 
 
 async def initialize(dut):
