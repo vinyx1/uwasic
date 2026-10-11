@@ -17,7 +17,7 @@ from helpers import (
 @cocotb.test()
 async def vector_macro_op_sequence(dut):
     """Load u, v; micro-ops read sources and write results; decode reads result.
-    b
+    Essentially, act as the decode+FU
     Models u + v computed one component at a time, using R6 as scratch:
     R6 <- R0 + R3, R0 <- R6, and so on.
     """
