@@ -47,7 +47,7 @@ async def walking_bits(dut):
 
         for address in range(NUM_REGS):
             await write(dut, address, one)
-            model[address] = one #c
+            model[address] = one # ensure that other registers did not get modified
             await check_all(dut, model)
 
             await write(dut, address, zero)
