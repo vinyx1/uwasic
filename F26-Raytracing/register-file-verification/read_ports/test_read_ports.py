@@ -7,7 +7,6 @@ import cocotb
 from helpers import (
     NUM_REGS,
     settle,
-    tick,
     initialize,
     fill_unique,
 )

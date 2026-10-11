@@ -1,4 +1,8 @@
-"""pytest entry point: builds RTL and launches the cocotb tests."""
+"""pytest entry point: builds RTL and launches the cocotb tests.
+
+Each test section lives in its own directory. Run everything with
+`pytest run.py`, or one section with e.g. `pytest run.py -k timing`.
+"""
 
 import os
 from pathlib import Path
@@ -7,9 +11,23 @@ import pytest
 from cocotb_tools.runner import get_runner
 
 ROOT = Path(__file__).resolve().parents[1]
+TEST_DIR = Path(__file__).resolve().parent
+
+SECTIONS = [
+    "reset",
+    "write_port",
+    "read_ports",
+    "parallel_load",
+    "result",
+    "timing",
+    "edge_values",
+    "random_model",
+    "sequences",
+]
 
 
-def test_reg_file():
+@pytest.mark.parametrize("section", SECTIONS)
+def test_reg_file(section):
     # Change these filenames if the actual project uses different names.
     sources = [
         ROOT / "rtl" / "tinytracer_pkg.sv",
@@ -28,6 +46,6 @@ def test_reg_file():
     )
     runner.test(
         hdl_toplevel="reg_file",
-        test_module="test_reg_file",
-        test_dir=ROOT / "tests",
+        test_module=f"{section}.test_{section}",
+        test_dir=TEST_DIR,  # on the path, so helpers.py is importable
     )

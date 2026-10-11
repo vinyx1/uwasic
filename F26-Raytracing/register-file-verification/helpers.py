@@ -14,7 +14,6 @@ Behaviour under test (from the register file spec):
   rising edge
 """
 
-import cocotb
 from cocotb.triggers import Timer
 
 CLOCK_PERIOD_NS = 10  # One full clock cycle = 10 ns
