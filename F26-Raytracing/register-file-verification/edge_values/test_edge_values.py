@@ -36,14 +36,19 @@ async def edge_values_load(dut):
 
 @cocotb.test()
 async def walking_bits(dut):
-    """Walking one and walking zero across all WLEN bits (stuck/shorted bits)."""
     await initialize(dut)
     m = mask(dut)
+    model = [0] * NUM_REGS
+
     for bit in range(wlen(dut)):
         one = 1 << bit
         zero = (~one) & m
+
         for address in range(NUM_REGS):
             await write(dut, address, one)
-            await check_port(dut, 1, address, one)
+            model[address] = one
+            await check_all(dut, model)
+
             await write(dut, address, zero)
-            await check_port(dut, 2, address, zero)
+            model[address] = zero
+            await check_all(dut, model)
