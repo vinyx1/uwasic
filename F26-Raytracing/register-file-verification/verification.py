@@ -8,13 +8,10 @@ Behaviour under test (from the register file spec):
 - read ports: rdata1/rdata2 are combinational reads of R[raddr1]/R[raddr2]
 - no write-to-read bypass: a register being written returns its old value
   until after the edge
-- load takes priority over a write in the same cycle
-- reset (rst_n low) clears all registers to zero
-
-Open questions (not tested here):
-- whether reset is synchronous or asynchronous; every reset below is
-  applied across a clock edge, so either implementation passes
-- whether load also blocks a same-cycle write to R6/R7
+- load takes priority over a write in the same cycle; the write is dropped
+  entirely, including writes to R6/R7
+- reset is synchronous: rst_n low clears all registers to zero on the next
+  rising edge
 """
 
 import random
@@ -193,6 +190,21 @@ async def reset_mid_operation(dut):
 
     await write(dut, 7, 0x42 & m)
     await check_port(dut, 1, 7, 0x42 & m)
+
+
+@cocotb.test()
+async def reset_is_synchronous(dut):
+    """rst_n low with no rising edge leaves registers unchanged; the edge clears them."""
+    await initialize(dut)
+    model = await fill_unique(dut)
+
+    dut.rst_n.value = 0
+    await Timer(CLOCK_PERIOD_NS * 2, unit="ns")  # clk held low, no edge
+    await check_all(dut, model)
+
+    await tick(dut)
+    dut.rst_n.value = 1
+    await check_all(dut, [0] * NUM_REGS)
 
 
 @cocotb.test()
@@ -502,12 +514,12 @@ async def read_during_load_returns_old(dut):
 
 @cocotb.test()
 async def load_priority_over_write(dut):
-    """load and wen in the same cycle: load wins for R0-R5."""
+    """load and wen in the same cycle: load wins and the write is dropped, even to R6/R7."""
     await initialize(dut)
     m = mask(dut)
     u = (0x21 & m, 0x22 & m, 0x23 & m)
     v = (0x24 & m, 0x25 & m, 0x26 & m)
-    for address in range(6):
+    for address in range(NUM_REGS):
         await reset(dut)
         dut.load.value = 1
         dut.load_u.value = pack_vec3(dut, *u)
@@ -582,11 +594,6 @@ async def random_against_model(dut):
         wdata = random.randint(0, m)
         raddr1 = random.randrange(NUM_REGS)
         raddr2 = random.randrange(NUM_REGS)
-
-        # Spec says load and wen never happen together; keep the random
-        # traffic legal and cover priority in load_priority_over_write.
-        if do_load:
-            do_write = False
 
         dut.rst_n.value = 0 if do_reset else 1
         dut.load.value = int(do_load)
