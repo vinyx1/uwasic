@@ -1,7 +1,7 @@
 """pytest entry point: builds RTL and launches the cocotb tests.
 
-Each test section lives in its own directory. Run everything with
-`pytest run.py`, or one section with e.g. `pytest run.py -k timing`.
+All tests live in test_reg_file.py and run once per load variant. Run
+everything with `pytest run.py`, or one variant with e.g. `pytest run.py -k multi`.
 """
 
 import os
@@ -13,21 +13,11 @@ from cocotb_tools.runner import get_runner
 ROOT = Path(__file__).resolve().parents[1]
 TEST_DIR = Path(__file__).resolve().parent
 
-SECTIONS = [
-    "reset",
-    "write_port",
-    "read_ports",
-    "parallel_load",
-    "result",
-    "timing",
-    "edge_values",
-    "random_model",
-    "sequences",
-]
+LOAD_MODES = ["single", "multi"]
 
 
-@pytest.mark.parametrize("section", SECTIONS)
-def test_reg_file(section):
+@pytest.mark.parametrize("load_mode", LOAD_MODES)
+def test_reg_file(load_mode):
     # Change these filenames if the actual project uses different names.
     sources = [
         ROOT / "rtl" / "tinytracer_pkg.sv",
@@ -41,11 +31,12 @@ def test_reg_file(section):
     runner.build(
         sources=sources,  # package comes before module
         hdl_toplevel="reg_file",
-        build_dir=ROOT / "sim_build",
+        build_dir=ROOT / "sim_build" / load_mode,
         always=True,
     )
     runner.test(
         hdl_toplevel="reg_file",
-        test_module=f"{section}.test_{section}",
+        test_module="test_reg_file",
         test_dir=TEST_DIR,  # on the path, so helpers.py is importable
+        extra_env={"REG_FILE_LOAD": load_mode},
     )

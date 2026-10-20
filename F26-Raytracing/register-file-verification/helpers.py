@@ -14,10 +14,22 @@ Behaviour under test (from the register file spec):
   rising edge
 """
 
+import os
+
 from cocotb.triggers import Timer
 
 CLOCK_PERIOD_NS = 10  # One full clock cycle = 10 ns
 NUM_REGS = 8
+
+# Load variant under test, selected by run.py through REG_FILE_LOAD.
+#   single: all six words are written on one edge.
+#   multi:  load and load_u/load_v are held for LOAD_CYCLES cycles; each cycle
+#           writes the two registers in the matching LOAD_PAIRS entry.
+# ASSUMPTION (multi): the pairing and order below are unconfirmed. Edit
+# LOAD_PAIRS if the RTL differs; indices are into the list [*u, *v].
+LOAD_MODE = os.getenv("REG_FILE_LOAD", "single")
+LOAD_PAIRS = [(0, 3), (1, 4), (2, 5)]
+LOAD_CYCLES = len(LOAD_PAIRS) if LOAD_MODE == "multi" else 1
 
 
 async def settle():
@@ -100,11 +112,12 @@ async def write(dut, address, data):
 
 
 async def load(dut, u, v):
-    """Parallel load. u and v are (x, y, z) tuples."""
+    """Parallel load, held for LOAD_CYCLES cycles. u and v are (x, y, z) tuples."""
     dut.load.value = 1
     dut.load_u.value = pack_vec3(dut, *u)
     dut.load_v.value = pack_vec3(dut, *v)
-    await tick(dut)
+    for _ in range(LOAD_CYCLES):
+        await tick(dut)
     dut.load.value = 0
     await settle()
 
