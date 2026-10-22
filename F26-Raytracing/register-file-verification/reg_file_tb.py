@@ -45,8 +45,8 @@ CLOCK_PERIOD_NS = 10  # One full clock cycle = 10 ns
 NUM_REGS = 8
 
 # Load variant under test, set through REG_FILE_LOAD by the pytest entry point.
-# ASSUMPTION (multi): the pairing and order below are unconfirmed. Edit
-# LOAD_PAIRS if the RTL differs; indices are into the list [*u, *v].
+# Multi: cycle k loads lane k of u and v (matches src/exu/reg_file.sv). Edit
+# LOAD_PAIRS if the RTL changes; indices are into the list [*u, *v].
 LOAD_MODE = os.getenv("REG_FILE_LOAD", "single")
 LOAD_PAIRS = [(0, 3), (1, 4), (2, 5)]
 LOAD_CYCLES = len(LOAD_PAIRS) if LOAD_MODE == "multi" else 1
@@ -515,6 +515,8 @@ async def random_against_model(dut):
         if random.random() < 0.15:
             u = tuple(random.randint(0, m) for _ in range(3))
             v = tuple(random.randint(0, m) for _ in range(3))
+            dut.rst_n.value = 1  # a previous iteration may have left reset low
+            dut.wen.value = 0
             await load(dut, u, v)
             model[0:6] = [*u, *v]
             await check_all(dut, model)
