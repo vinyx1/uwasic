@@ -19,9 +19,10 @@ Behaviour under test (from the register file spec):
 
 Load variants (REG_FILE_LOAD, set by the pytest entry point):
 - single: all six words are written on one edge
-- multi:  load and load_u/load_v are held for LOAD_CYCLES cycles; each cycle
-          writes two registers, per LOAD_PAIRS. Multi-only tests are skipped
-          in single mode.
+- multi:  `load` is held for LOAD_CYCLES cycles and the Decode Unit presents
+          a different pair each cycle (pair 1, then 2, then 3, per LOAD_PAIRS);
+          each cycle writes that pair's two registers. Multi-only tests are
+          skipped in single mode.
 """
 
 import os
@@ -127,12 +128,40 @@ async def write(dut, address, data):
     await settle()
 
 
+def drive_load_cycle(dut, u, v, cycle):
+    """Drive load_u/load_v for one load cycle (does not touch `load` or the clock).
+
+    single: all six words, one cycle.
+    multi:  the Decode Unit presents only this cycle's pair, per LOAD_PAIRS.
+    ASSUMPTION (multi): a pair's words sit in their natural lanes (u[k] on
+    load_u lane k, v[k] on load_v lane k). The other lanes carry a wrong value
+    (~word) so reading the wrong lane or the wrong cycle is caught. Change the
+    lane convention here if the RTL differs.
+    """
+    if LOAD_MODE == "single":
+        dut.load_u.value = pack_vec3(dut, *u)
+        dut.load_v.value = pack_vec3(dut, *v)
+        return
+
+    m = mask(dut)
+    words = [*u, *v]
+    u_lanes = [(~w) & m for w in u]
+    v_lanes = [(~w) & m for w in v]
+    for index in LOAD_PAIRS[cycle]:
+        if index < 3:
+            u_lanes[index] = words[index]
+        else:
+            v_lanes[index - 3] = words[index]
+    dut.load_u.value = pack_vec3(dut, *u_lanes)
+    dut.load_v.value = pack_vec3(dut, *v_lanes)
+
+
 async def load(dut, u, v):
-    """Parallel load, held for LOAD_CYCLES cycles. u and v are (x, y, z) tuples."""
+    """Load u and v ((x, y, z) tuples): `load` high for LOAD_CYCLES cycles, with
+    the inputs for each cycle driven by drive_load_cycle."""
     dut.load.value = 1
-    dut.load_u.value = pack_vec3(dut, *u)
-    dut.load_v.value = pack_vec3(dut, *v)
-    for _ in range(LOAD_CYCLES):
+    for cycle in range(LOAD_CYCLES):
+        drive_load_cycle(dut, u, v, cycle)
         await tick(dut)
     dut.load.value = 0
     await settle()
@@ -578,9 +607,8 @@ async def multiload_partial_states(dut):
     words = [*u, *v]
 
     dut.load.value = 1
-    dut.load_u.value = pack_vec3(dut, *u)
-    dut.load_v.value = pack_vec3(dut, *v)
     for cycle, pair in enumerate(LOAD_PAIRS):
+        drive_load_cycle(dut, u, v, cycle)
         await tick(dut)
         for index in pair:
             model[index] = words[index]
@@ -599,9 +627,8 @@ async def multiload_reset_mid_load(dut):
     for reset_after in range(1, LOAD_CYCLES):
         await fill_unique(dut)
         dut.load.value = 1
-        dut.load_u.value = pack_vec3(dut, *u)
-        dut.load_v.value = pack_vec3(dut, *v)
-        for _ in range(reset_after):
+        for cycle in range(reset_after):
+            drive_load_cycle(dut, u, v, cycle)
             await tick(dut)
 
         await reset(dut)  # load still high
