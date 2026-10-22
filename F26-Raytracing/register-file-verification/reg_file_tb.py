@@ -695,7 +695,7 @@ if __name__ == "__main__":
         "--load-mode",
         choices=[*LOAD_MODES, "both"],
         default="both",
-        help="load variant to test (def ault: both)",
+        help="load variant to test (default: both)",
     )
     args, pytest_args = parser.parse_known_args()
     select = [] if args.load_mode == "both" else ["-k", args.load_mode]
