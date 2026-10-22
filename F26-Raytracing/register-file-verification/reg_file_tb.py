@@ -145,7 +145,7 @@ def drive_load_cycle(dut, u, v, cycle):
 
     m = mask(dut)
     words = [*u, *v]
-    u_lanes = [(~w) & m for w in u]
+    u_lanes = [(~w) & m for w in u] # fill with garbage values
     v_lanes = [(~w) & m for w in v]
     for index in LOAD_PAIRS[cycle]:
         if index < 3:
