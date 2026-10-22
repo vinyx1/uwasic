@@ -1,8 +1,11 @@
 """reg_file verification: cocotb tests, helpers and the pytest entry point.
 
-Run everything with `pytest reg_file_tb.py`, or one load variant with e.g.
-`pytest reg_file_tb.py -k multi`. pytest builds the RTL and launches cocotb on
-this same file; inside the simulator only the cocotb tests below are used.
+Run with `python reg_file_tb.py` (both load variants), or pick one:
+`python reg_file_tb.py --load-mode multi` (or `single`). Extra arguments are
+passed to pytest, e.g. `python reg_file_tb.py --load-mode multi -x`. Plain
+`pytest reg_file_tb.py [-k multi]` also works. pytest builds the RTL and
+launches cocotb on this same file; inside the simulator only the cocotb tests
+below are used.
 
 Behaviour under test (from the register file spec):
 - eight WLEN-bit registers, R0-R7
@@ -681,3 +684,19 @@ def test_reg_file(load_mode):
         test_dir=TEST_DIR,
         extra_env={"REG_FILE_LOAD": load_mode},
     )
+
+
+if __name__ == "__main__":
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--load-mode",
+        choices=[*LOAD_MODES, "both"],
+        default="both",
+        help="load variant to test (default: both)",
+    )
+    args, pytest_args = parser.parse_known_args()
+    select = [] if args.load_mode == "both" else ["-k", args.load_mode]
+    sys.exit(pytest.main([__file__, *select, *pytest_args]))

@@ -41,8 +41,9 @@ Run its tests:
 
 ```
 cd register-file-verification
-pytest reg_file_tb.py            # both load variants
-pytest reg_file_tb.py -k multi   # one variant
+python reg_file_tb.py                     # both load variants
+python reg_file_tb.py --load-mode multi   # or single; extra args go to pytest
+pytest reg_file_tb.py -k multi            # equivalent
 ```
 
 Verilator by default (`SIM=<name>` to override), via the cocotb runner. pytest builds the RTL, then cocotb imports the same file as `reg_file_tb` and runs only the cocotb tests. Tests are WLEN-agnostic. Test function names must not start with `test` or pytest will try to collect them.
