@@ -49,7 +49,9 @@ Verilator by default (`SIM=<name>` to override), via the cocotb runner. pytest b
 
 The tests assume things the docs do not state; confirm against the RTL before treating them as requirements: reset is **synchronous**; a write dropped by load priority is dropped **entirely** (including R6/R7); `vec3_t` is 3 x WLEN with x in the low bits.
 
-**Open question: multicycle load.** Someone mentioned single-cycle vs multicycle load ("2 words instead of 6", inputs unchanged). Secondhand and unconfirmed; the docs still describe only the single-cycle load. The tests cover both via `REG_FILE_LOAD=single|multi`, guessing that `load` and `load_u/load_v` are held for 3 cycles and cycle k writes the pair in `LOAD_PAIRS = [(0,3),(1,4),(2,5)]`. Unconfirmed: the pairing/order, held vs pulsed `load`, whether the variant is a separate RTL file or a parameter, and early-drop behavior (untested). Update `LOAD_PAIRS` and this note once known.
+**Multicycle load.** Someone mentioned single-cycle vs multicycle load ("2 words instead of 6"). The user later clarified that the Decode Unit manages it: `load` stays high for 3 cycles and Decode presents pair 1, then pair 2, then pair 3 (one pair per cycle, nothing captured up front). The docs page still describes only the single-cycle load. The tests cover both via `REG_FILE_LOAD=single|multi`; `drive_load_cycle` and `LOAD_PAIRS = [(0,3),(1,4),(2,5)]` in `reg_file_tb.py` hold the convention.
+
+Still guessed, not confirmed: the pairing/order, which port lanes a pair's words occupy (tests assume u[k] on `load_u` lane k and v[k] on `load_v` lane k, with the other lanes driven to a deliberately wrong value), whether the variant is a separate RTL file or a parameter, and early-drop behavior (untested). Update those two spots and this note once known.
 
 ## Conventions
 
